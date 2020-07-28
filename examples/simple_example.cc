@@ -55,13 +55,15 @@ Slice get_key() {
 
 std::string get_value() { return std::string(gen_random(VAL_SIZE)); }
 
-void do_timer() {
+void do_stat(std::shared_ptr<Statistics> stat) {
   while (true) {
     std::this_thread::sleep_for(std::chrono::seconds(QPS_GAP));
     auto cur_num = NUM;
     auto cur_last = LAST;
     LAST = NUM;
     std::cout << "qps: " << (cur_num - cur_last) / QPS_GAP << std::endl;
+    std::cout << "GetBytesInserted:" << stat->getAndResetTickerCount(17)
+              << std::endl;
   }
 }
 
@@ -83,6 +85,11 @@ void do_delete_files_in_range(DB *db) {
 }
 
 void exec_command(DB *db) {
+  // warm up
+  for (int i = 0; i < 10000; i++) {
+    std::string value;
+    db->Get(ReadOptions(), "100", &value);
+  }
   while (1) {
     int input = 0;
     std::cin >> input;
@@ -109,13 +116,15 @@ int main() {
   options.OptimizeLevelStyleCompaction();
   // create the DB if it's not already present
   options.create_if_missing = true;
+  auto statistics = CreateDBStatistics();
+  options.statistics = statistics;
 
   // open DB
   Status s = DB::Open(options, kDBPath, &db);
   assert(s.ok());
 
   std::thread t1(exec_command, db);
-  std::thread t2(do_timer);
+  std::thread t2(do_stat, statistics);
 
   if (INSERT) {
     s = db->Put(WriteOptions(), "0", "value");
