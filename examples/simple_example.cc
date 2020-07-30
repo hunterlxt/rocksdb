@@ -24,6 +24,7 @@ uint64_t NUM = 0;
 uint64_t LAST = 0;
 int VAL_SIZE = 512;
 uint64_t LOOP_SIZE = 1000000000000000;
+uint64_t BOUND = 1000000000000;
 uint64_t BATCH_SIZE = 4;
 uint64_t QPS_GAP = 3;
 
@@ -85,7 +86,10 @@ void do_delete_files_in_range(DB *db) {
 
 void do_scan_and_delete(DB *db) {
   std::cout << "cmd:do_scan_and_delete" << std::endl;
-  Iterator *it = db->NewIterator(ReadOptions());
+  auto opt = ReadOptions();
+  auto bound = Slice(std::to_string(BOUND));
+  opt.iterate_upper_bound = &bound;
+  Iterator *it = db->NewIterator(opt);
   for (it->Seek("0"); it->Valid(); it->Next()) {
     db->Delete(WriteOptions(), it->key());
   }
@@ -97,15 +101,19 @@ void do_scan_first(DB *db) {
   std::string value;
   Status s = db->Get(ReadOptions(), "0", &value);
   if (s.ok()) {
-    std::cout << "key 0:" << value << std::endl;
+    std::cout << "key 0 exist" << std::endl;
+  }
+  s = db->Get(ReadOptions(), "5", &value);
+  if (s.ok()) {
+    std::cout << "key 5 exist" << std::endl;
   }
   s = db->Get(ReadOptions(), "9", &value);
   if (s.ok()) {
-    std::cout << "key 9:" << value << std::endl;
+    std::cout << "key 9 exist" << std::endl;
   }
   s = db->Get(ReadOptions(), "99", &value);
   if (s.ok()) {
-    std::cout << "key 99:" << value << std::endl;
+    std::cout << "key 99 exist" << std::endl;
   }
 }
 
@@ -129,6 +137,9 @@ void exec_command(DB *db) {
     }
     if (input == 4) {
       do_scan_first(db);
+    }
+    if (input == 5) {
+      NUM = 1000000000000;
     }
     if (input == 0) {
       std::cout << "=== cmd all finished ===" << std::endl;
