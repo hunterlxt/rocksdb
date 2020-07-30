@@ -25,8 +25,7 @@ uint64_t LAST = 0;
 int VAL_SIZE = 512;
 uint64_t LOOP_SIZE = 1000000000000000;
 uint64_t BATCH_SIZE = 4;
-uint64_t QPS_GAP = 6;
-bool INSERT = true;
+uint64_t QPS_GAP = 3;
 
 std::string gen_random(const int len) {
   char *s = (char *)malloc(len + 1);
@@ -61,14 +60,14 @@ void do_stat(std::shared_ptr<Statistics> stat) {
     auto cur_num = NUM;
     auto cur_last = LAST;
     LAST = NUM;
-    std::cout << "qps: " << (cur_num - cur_last) / QPS_GAP << std::endl;
+    std::cout << "QPS: " << (cur_num - cur_last) / QPS_GAP << std::endl;
     std::cout << "GetBytesInserted:" << stat->getAndResetTickerCount(17)
               << std::endl;
   }
 }
 
 void do_compact(DB *db) {
-  std::cout << "comapct" << std::endl;
+  std::cout << "cmd:comapct" << std::endl;
   CompactRangeOptions compact_options;
   compact_options.max_subcompactions = 4;
   Status s = db->CompactRange(compact_options, nullptr, nullptr);
@@ -77,11 +76,37 @@ void do_compact(DB *db) {
 }
 
 void do_delete_files_in_range(DB *db) {
-  std::cout << "delete_files_in_range" << std::endl;
+  std::cout << "cmd:delete_files_in_range" << std::endl;
   Status s =
       DeleteFilesInRange(db, db->DefaultColumnFamily(), nullptr, nullptr);
   assert(s.ok());
   std::cout << "delete_files_in_range done" << std::endl;
+}
+
+void do_scan_and_delete(DB *db) {
+  std::cout << "cmd:do_scan_and_delete" << std::endl;
+  Iterator *it = db->NewIterator(ReadOptions());
+  for (it->Seek("0"); it->Valid(); it->Next()) {
+    db->Delete(WriteOptions(), it->key());
+  }
+  std::cout << "do_scan_and_delete finished" << std::endl;
+}
+
+void do_scan_first(DB *db) {
+  std::cout << "cmd:do_scan_first" << std::endl;
+  std::string value;
+  Status s = db->Get(ReadOptions(), "0", &value);
+  if (s.ok()) {
+    std::cout << "key 0:" << value << std::endl;
+  }
+  s = db->Get(ReadOptions(), "9", &value);
+  if (s.ok()) {
+    std::cout << "key 9:" << value << std::endl;
+  }
+  s = db->Get(ReadOptions(), "99", &value);
+  if (s.ok()) {
+    std::cout << "key 99:" << value << std::endl;
+  }
 }
 
 void exec_command(DB *db) {
@@ -93,22 +118,30 @@ void exec_command(DB *db) {
   while (1) {
     int input = 0;
     std::cin >> input;
-    std::cout << "recv cmd" << std::endl;
     if (input == 1) {
       do_compact(db);
     }
     if (input == 2) {
       do_delete_files_in_range(db);
     }
+    if (input == 3) {
+      do_scan_and_delete(db);
+    }
+    if (input == 4) {
+      do_scan_first(db);
+    }
     if (input == 0) {
-      std::cout << "cmd finished" << std::endl;
+      std::cout << "=== cmd all finished ===" << std::endl;
       break;
     }
-    std::cout << "cmd loop" << std::endl;
   }
 }
 
-int main() {
+int main(int argc, char *argv[]) {
+  bool insert = false;
+  if (argc >= 2) {
+    insert = true;
+  }
   DB *db;
   Options options;
   // Optimize RocksDB. This is the easiest way to get RocksDB to perform well
@@ -126,7 +159,7 @@ int main() {
   std::thread t1(exec_command, db);
   std::thread t2(do_stat, statistics);
 
-  if (INSERT) {
+  if (insert) {
     s = db->Put(WriteOptions(), "0", "value");
     assert(s.ok());
     std::string value;
