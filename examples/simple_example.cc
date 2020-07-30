@@ -20,11 +20,12 @@ using namespace ROCKSDB_NAMESPACE;
 
 std::string kDBPath = "temp_db";
 
+
 uint64_t NUM = 0;
 uint64_t LAST = 0;
 int VAL_SIZE = 512;
-uint64_t LOOP_SIZE = 1000000000000000;
-uint64_t BOUND = 1000000000000;
+std::string BOUND = std::string("000100000000000");
+std::string START = std::string("000000000000000");
 uint64_t BATCH_SIZE = 4;
 uint64_t QPS_GAP = 3;
 
@@ -45,12 +46,24 @@ std::string gen_random(const int len) {
   return ret;
 }
 
-Slice get_key() {
+std::string convert(std::string s) {
+  int len = 15 - s.length();
+  auto pre = std::string();
+  while (len--) {
+    pre.push_back('0');
+  }
+  auto ret = pre + s;
+  assert(ret.length() == 15);
+  return ret;
+}
+
+std::string get_key() {
   NUM += 1;
   if (NUM % 8000000 == 0) {
     std::cout << "NUM:" << NUM << std::endl;
   }
-  return std::to_string(NUM);
+  auto ret = convert(std::to_string(NUM));
+  return ret;
 }
 
 std::string get_value() { return std::string(gen_random(VAL_SIZE)); }
@@ -87,10 +100,10 @@ void do_delete_files_in_range(DB *db) {
 void do_scan_and_delete(DB *db) {
   std::cout << "cmd:do_scan_and_delete" << std::endl;
   auto opt = ReadOptions();
-  auto bound = Slice(std::to_string(BOUND));
+  auto bound = Slice(BOUND);
   opt.iterate_upper_bound = &bound;
   Iterator *it = db->NewIterator(opt);
-  for (it->Seek("0"); it->Valid(); it->Next()) {
+  for (it->Seek(START); it->Valid(); it->Next()) {
     db->Delete(WriteOptions(), it->key());
   }
   std::cout << "do_scan_and_delete finished" << std::endl;
@@ -99,30 +112,22 @@ void do_scan_and_delete(DB *db) {
 void do_scan_first(DB *db) {
   std::cout << "cmd:do_scan_first" << std::endl;
   std::string value;
-  Status s = db->Get(ReadOptions(), "0", &value);
+  Status s = db->Get(ReadOptions(), "START", &value);
   if (s.ok()) {
-    std::cout << "key 0 exist" << std::endl;
+    std::cout << "key 0 exist " << value << std::endl;
   }
-  s = db->Get(ReadOptions(), "5", &value);
+  s = db->Get(ReadOptions(), "000000000000022", &value);
   if (s.ok()) {
-    std::cout << "key 5 exist" << std::endl;
+    std::cout << "key 222 exist " << value << std::endl;
   }
-  s = db->Get(ReadOptions(), "9", &value);
+  s = db->Get(ReadOptions(), "000000000000333", &value);
   if (s.ok()) {
-    std::cout << "key 9 exist" << std::endl;
+    std::cout << "key 3333 exist " << value << std::endl;
   }
-  s = db->Get(ReadOptions(), "99", &value);
-  if (s.ok()) {
-    std::cout << "key 99 exist" << std::endl;
-  }
+  std::cout << "do_scan_first done" << std::endl;
 }
 
 void exec_command(DB *db) {
-  // warm up
-  for (int i = 0; i < 10000; i++) {
-    std::string value;
-    db->Get(ReadOptions(), "100", &value);
-  }
   while (1) {
     int input = 0;
     std::cin >> input;
@@ -139,7 +144,7 @@ void exec_command(DB *db) {
       do_scan_first(db);
     }
     if (input == 5) {
-      NUM = 1000000000000;
+      NUM = 100000000000;
     }
     if (input == 0) {
       std::cout << "=== cmd all finished ===" << std::endl;
@@ -171,13 +176,13 @@ int main(int argc, char *argv[]) {
   std::thread t2(do_stat, statistics);
 
   if (insert) {
-    s = db->Put(WriteOptions(), "0", "value");
+    s = db->Put(WriteOptions(), "START", "xxxxxxxxxxxxx");
     assert(s.ok());
     std::string value;
-    s = db->Get(ReadOptions(), "0", &value);
+    s = db->Get(ReadOptions(), "START", &value);
     assert(s.ok());
-    assert(value == "value");
-    for (uint64_t i = 0; i < LOOP_SIZE; i++) {
+    assert(value == "xxxxxxxxxxxxx");
+    while (1) {
       WriteBatch batch;
       for (uint64_t j = 0; j < BATCH_SIZE; j++) {
         batch.Put(get_key(), get_value());
