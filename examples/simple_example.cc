@@ -13,13 +13,16 @@
 
 #include "rocksdb/convenience.h"
 #include "rocksdb/db.h"
+#include "rocksdb/env.h"
 #include "rocksdb/options.h"
+#include "rocksdb/perf_context.h"
 #include "rocksdb/slice.h"
+#include "rocksdb/sst_file_manager.h"
+#include "rocksdb/statistics.h"
 
 using namespace ROCKSDB_NAMESPACE;
 
 std::string kDBPath = "temp_db";
-
 
 uint64_t NUM = 0;
 uint64_t LAST = 0;
@@ -28,6 +31,7 @@ std::string BOUND = std::string("000100000000000");
 std::string START = std::string("000000000000000");
 uint64_t BATCH_SIZE = 4;
 uint64_t QPS_GAP = 3;
+uint64_t DELETE_BYTES_RATE = 64 * 1024 * 1024;
 
 std::string gen_random(const int len) {
   char *s = (char *)malloc(len + 1);
@@ -74,9 +78,50 @@ void do_stat(std::shared_ptr<Statistics> stat) {
     auto cur_num = NUM;
     auto cur_last = LAST;
     LAST = NUM;
-    std::cout << "QPS: " << (cur_num - cur_last) / QPS_GAP << std::endl;
-    std::cout << "GetBytesInserted:" << stat->getAndResetTickerCount(17)
+    std::cout << "QPS: " << (cur_num - cur_last) / QPS_GAP << "-------------"
               << std::endl;
+    std::cout << "BLOCK_CACHE_DATA_HIT:"
+              << stat->getAndResetTickerCount(BLOCK_CACHE_DATA_HIT)
+              << std::endl;
+    std::cout << "BLOCK_CACHE_DATA_MISS:"
+              << stat->getAndResetTickerCount(BLOCK_CACHE_DATA_MISS)
+              << std::endl;
+    std::cout << "BLOCK_CACHE_BYTES_READ:"
+              << stat->getAndResetTickerCount(BLOCK_CACHE_BYTES_READ)
+              << std::endl;
+    std::cout << "BLOCK_CACHE_BYTES_WRITE:"
+              << stat->getAndResetTickerCount(BLOCK_CACHE_BYTES_WRITE)
+              << std::endl;
+    std::cout << "SIM_BLOCK_CACHE_HIT:"
+              << stat->getAndResetTickerCount(SIM_BLOCK_CACHE_HIT) << std::endl;
+    std::cout << "SIM_BLOCK_CACHE_MISS:"
+              << stat->getAndResetTickerCount(SIM_BLOCK_CACHE_MISS)
+              << std::endl;
+    std::cout << "COMPACTION_KEY_DROP_OBSOLETE:"
+              << stat->getAndResetTickerCount(COMPACTION_KEY_DROP_OBSOLETE)
+              << std::endl;
+    std::cout << "COMPACTION_KEY_DROP_RANGE_DEL:"
+              << stat->getAndResetTickerCount(COMPACTION_KEY_DROP_RANGE_DEL)
+              << std::endl;
+    std::cout << "GET_HIT_L2_AND_UP:"
+              << stat->getAndResetTickerCount(GET_HIT_L2_AND_UP) << std::endl;
+    std::cout << "NUMBER_DB_SEEK:"
+              << stat->getAndResetTickerCount(NUMBER_DB_SEEK) << std::endl;
+    std::cout << "DB_MUTEX_WAIT_MICROS:"
+              << stat->getAndResetTickerCount(DB_MUTEX_WAIT_MICROS) / 1000000
+              << "ms" << std::endl;
+    std::cout << "GET_HIT_L2_AND_UP:"
+              << stat->getAndResetTickerCount(GET_HIT_L2_AND_UP) << std::endl;
+    std::cout << "STALL_MICROS:" << stat->getAndResetTickerCount(STALL_MICROS)
+              << std::endl;
+    std::cout << "STALL_L0_SLOWDOWN_MICROS:"
+              << stat->getAndResetTickerCount(STALL_L0_SLOWDOWN_MICROS)
+              << std::endl;
+    std::cout << "STALL_L0_NUM_FILES_MICROS:"
+              << stat->getAndResetTickerCount(STALL_L0_NUM_FILES_MICROS)
+              << std::endl;
+    std::cout << "WAL_FILE_SYNCED:"
+              << stat->getAndResetTickerCount(WAL_FILE_SYNCED) << std::endl;
   }
 }
 
@@ -91,10 +136,9 @@ void do_compact(DB *db) {
 
 void do_delete_files_in_range(DB *db) {
   std::cout << "cmd:delete_files_in_range" << std::endl;
-  Status s =
-      DeleteFilesInRange(db, db->DefaultColumnFamily(), nullptr, nullptr);
-  assert(s.ok());
-  std::cout << "delete_files_in_range done" << std::endl;
+  Slice begin = std::string("000000001000000");
+  Status s = DeleteFilesInRange(db, db->DefaultColumnFamily(), &begin, nullptr);
+  std::cout << "delete_files_in_range done =====================" << std::endl;
 }
 
 void do_scan_and_delete(DB *db) {
@@ -106,7 +150,7 @@ void do_scan_and_delete(DB *db) {
   for (it->Seek(START); it->Valid(); it->Next()) {
     db->Delete(WriteOptions(), it->key());
   }
-  std::cout << "do_scan_and_delete finished" << std::endl;
+  std::cout << "do_scan_and_delete finished =====================" << std::endl;
 }
 
 void do_scan_first(DB *db) {
@@ -154,7 +198,9 @@ void exec_command(DB *db) {
 }
 
 int main(int argc, char *argv[]) {
+  // SetPerfLevel(static_cast<PerfLevel>(4));
   bool insert = false;
+  Slice buffer;
   if (argc >= 2) {
     insert = true;
   }
@@ -163,9 +209,16 @@ int main(int argc, char *argv[]) {
   // Optimize RocksDB. This is the easiest way to get RocksDB to perform well
   options.IncreaseParallelism();
   options.OptimizeLevelStyleCompaction();
+  auto manager =
+      std::shared_ptr<SstFileManager>(NewSstFileManager(Env::Default()));
+  manager->SetDeleteRateBytesPerSecond(DELETE_BYTES_RATE);
+  std::cout << "GetDeleteRateBytesPerSecond "
+            << manager->GetDeleteRateBytesPerSecond() << std::endl;
+  options.sst_file_manager = manager;
   // create the DB if it's not already present
   options.create_if_missing = true;
   auto statistics = CreateDBStatistics();
+  statistics->set_stats_level(StatsLevel::kAll);
   options.statistics = statistics;
 
   // open DB
@@ -185,8 +238,14 @@ int main(int argc, char *argv[]) {
     while (1) {
       WriteBatch batch;
       for (uint64_t j = 0; j < BATCH_SIZE; j++) {
-        batch.Put(get_key(), get_value());
+        auto key = get_key();
+        Iterator *it = db->NewIterator(ReadOptions());
+        it->Seek(key);
+        buffer = it->value();
+        delete it;
+        batch.Put(key, get_value());
       }
+
       s = db->Write(WriteOptions(), &batch);
       assert(s.ok());
     }
