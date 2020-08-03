@@ -22,8 +22,7 @@
 
 using namespace ROCKSDB_NAMESPACE;
 
-std::string kDBPath = "temp_db";
-
+std::string kDBPath = "../../temp_db";
 uint64_t NUM = 0;
 uint64_t LAST = 0;
 int VAL_SIZE = 512;
@@ -95,8 +94,7 @@ void do_stat(std::shared_ptr<Statistics> stat) {
     std::cout << "COMPACT_READ_BYTES:"
               << stat->getAndResetTickerCount(COMPACT_READ_BYTES) << std::endl;
     std::cout << "COMPACT_WRITE_BYTES:"
-              << stat->getAndResetTickerCount(COMPACT_WRITE_BYTES)
-              << std::endl;
+              << stat->getAndResetTickerCount(COMPACT_WRITE_BYTES) << std::endl;
     std::cout << "COMPACTION_KEY_DROP_OBSOLETE:"
               << stat->getAndResetTickerCount(COMPACTION_KEY_DROP_OBSOLETE)
               << std::endl;
@@ -115,11 +113,9 @@ void do_stat(std::shared_ptr<Statistics> stat) {
     std::cout << "STALL_MICROS:" << stat->getAndResetTickerCount(STALL_MICROS)
               << std::endl;
     std::cout << "WRITE_TIMEDOUT:"
-              << stat->getAndResetTickerCount(WRITE_TIMEDOUT)
-              << std::endl;
+              << stat->getAndResetTickerCount(WRITE_TIMEDOUT) << std::endl;
     std::cout << "WAL_FILE_BYTES:"
-              << stat->getAndResetTickerCount(WAL_FILE_BYTES)
-              << std::endl;
+              << stat->getAndResetTickerCount(WAL_FILE_BYTES) << std::endl;
     std::cout << "WAL_FILE_SYNCED:"
               << stat->getAndResetTickerCount(WAL_FILE_SYNCED) << std::endl;
   }
@@ -138,7 +134,7 @@ void do_delete_files_in_range(DB *db) {
   std::cout << "cmd:delete_files_in_range" << std::endl;
   Slice begin = std::string("000000000008999");
   Slice end = Slice(BOUND);
-  Status s = DeleteFilesInRange(db, db->DefaultColumnFamily(), &begin, &end);
+  Status s = DeleteFilesInRange(db, db->DefaultColumnFamily(), nullptr, &end);
   std::cout << "delete_files_in_range done =====================" << std::endl;
 }
 
@@ -166,6 +162,7 @@ void do_scan_first(DB *db) {
     std::cout << "key 9999 exist " << value << std::endl;
   }
   s = db->Get(ReadOptions(), "000000000009999", &value);
+  std::cout << "scan done" << std::endl;
 }
 
 void exec_command(DB *db) {
