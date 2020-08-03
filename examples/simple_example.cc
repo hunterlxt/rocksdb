@@ -92,10 +92,10 @@ void do_stat(std::shared_ptr<Statistics> stat) {
     std::cout << "BLOCK_CACHE_BYTES_WRITE:"
               << stat->getAndResetTickerCount(BLOCK_CACHE_BYTES_WRITE)
               << std::endl;
-    std::cout << "SIM_BLOCK_CACHE_HIT:"
-              << stat->getAndResetTickerCount(SIM_BLOCK_CACHE_HIT) << std::endl;
-    std::cout << "SIM_BLOCK_CACHE_MISS:"
-              << stat->getAndResetTickerCount(SIM_BLOCK_CACHE_MISS)
+    std::cout << "COMPACT_READ_BYTES:"
+              << stat->getAndResetTickerCount(COMPACT_READ_BYTES) << std::endl;
+    std::cout << "COMPACT_WRITE_BYTES:"
+              << stat->getAndResetTickerCount(COMPACT_WRITE_BYTES)
               << std::endl;
     std::cout << "COMPACTION_KEY_DROP_OBSOLETE:"
               << stat->getAndResetTickerCount(COMPACTION_KEY_DROP_OBSOLETE)
@@ -103,8 +103,8 @@ void do_stat(std::shared_ptr<Statistics> stat) {
     std::cout << "COMPACTION_KEY_DROP_RANGE_DEL:"
               << stat->getAndResetTickerCount(COMPACTION_KEY_DROP_RANGE_DEL)
               << std::endl;
-    std::cout << "GET_HIT_L2_AND_UP:"
-              << stat->getAndResetTickerCount(GET_HIT_L2_AND_UP) << std::endl;
+    std::cout << "FLUSH_WRITE_BYTES:"
+              << stat->getAndResetTickerCount(FLUSH_WRITE_BYTES) << std::endl;
     std::cout << "NUMBER_DB_SEEK:"
               << stat->getAndResetTickerCount(NUMBER_DB_SEEK) << std::endl;
     std::cout << "DB_MUTEX_WAIT_MICROS:"
@@ -114,11 +114,11 @@ void do_stat(std::shared_ptr<Statistics> stat) {
               << stat->getAndResetTickerCount(GET_HIT_L2_AND_UP) << std::endl;
     std::cout << "STALL_MICROS:" << stat->getAndResetTickerCount(STALL_MICROS)
               << std::endl;
-    std::cout << "STALL_L0_SLOWDOWN_MICROS:"
-              << stat->getAndResetTickerCount(STALL_L0_SLOWDOWN_MICROS)
+    std::cout << "WRITE_TIMEDOUT:"
+              << stat->getAndResetTickerCount(WRITE_TIMEDOUT)
               << std::endl;
-    std::cout << "STALL_L0_NUM_FILES_MICROS:"
-              << stat->getAndResetTickerCount(STALL_L0_NUM_FILES_MICROS)
+    std::cout << "WAL_FILE_BYTES:"
+              << stat->getAndResetTickerCount(WAL_FILE_BYTES)
               << std::endl;
     std::cout << "WAL_FILE_SYNCED:"
               << stat->getAndResetTickerCount(WAL_FILE_SYNCED) << std::endl;
