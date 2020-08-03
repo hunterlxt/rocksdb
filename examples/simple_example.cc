@@ -31,7 +31,7 @@ std::string BOUND = std::string("000100000000000");
 std::string START = std::string("000000000000000");
 uint64_t BATCH_SIZE = 4;
 uint64_t QPS_GAP = 3;
-uint64_t DELETE_BYTES_RATE = 64 * 1024 * 1024;
+uint64_t DELETE_BYTES_RATE = 0;
 
 std::string gen_random(const int len) {
   char *s = (char *)malloc(len + 1);
@@ -136,8 +136,9 @@ void do_compact(DB *db) {
 
 void do_delete_files_in_range(DB *db) {
   std::cout << "cmd:delete_files_in_range" << std::endl;
-  Slice begin = std::string("000000001000000");
-  Status s = DeleteFilesInRange(db, db->DefaultColumnFamily(), &begin, nullptr);
+  Slice begin = std::string("000000000008999");
+  Slice end = Slice(BOUND);
+  Status s = DeleteFilesInRange(db, db->DefaultColumnFamily(), &begin, &end);
   std::cout << "delete_files_in_range done =====================" << std::endl;
 }
 
@@ -158,17 +159,13 @@ void do_scan_first(DB *db) {
   std::string value;
   Status s = db->Get(ReadOptions(), "START", &value);
   if (s.ok()) {
-    std::cout << "key 0 exist " << value << std::endl;
+    std::cout << "key 100 exist " << value << std::endl;
   }
-  s = db->Get(ReadOptions(), "000000000000022", &value);
+  s = db->Get(ReadOptions(), "000000000000100", &value);
   if (s.ok()) {
-    std::cout << "key 222 exist " << value << std::endl;
+    std::cout << "key 9999 exist " << value << std::endl;
   }
-  s = db->Get(ReadOptions(), "000000000000333", &value);
-  if (s.ok()) {
-    std::cout << "key 3333 exist " << value << std::endl;
-  }
-  std::cout << "do_scan_first done" << std::endl;
+  s = db->Get(ReadOptions(), "000000000009999", &value);
 }
 
 void exec_command(DB *db) {
