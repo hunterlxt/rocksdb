@@ -63,7 +63,7 @@ std::string convert(std::string s) {
 std::string get_key() {
   NUM += 1;
   if (NUM % 8000000 == 0) {
-    std::cout << "NUM:" << NUM << std::endl;
+    std::cout << "CUR NUM:" << NUM << std::endl;
   }
   auto ret = convert(std::to_string(NUM));
   return ret;
@@ -77,47 +77,16 @@ void do_stat(std::shared_ptr<Statistics> stat) {
     auto cur_num = NUM;
     auto cur_last = LAST;
     LAST = NUM;
-    std::cout << "QPS: " << (cur_num - cur_last) / QPS_GAP << "-------------"
-              << std::endl;
-    std::cout << "BLOCK_CACHE_DATA_HIT:"
-              << stat->getAndResetTickerCount(BLOCK_CACHE_DATA_HIT)
-              << std::endl;
-    std::cout << "BLOCK_CACHE_DATA_MISS:"
-              << stat->getAndResetTickerCount(BLOCK_CACHE_DATA_MISS)
-              << std::endl;
-    std::cout << "BLOCK_CACHE_BYTES_READ:"
-              << stat->getAndResetTickerCount(BLOCK_CACHE_BYTES_READ)
-              << std::endl;
-    std::cout << "BLOCK_CACHE_BYTES_WRITE:"
-              << stat->getAndResetTickerCount(BLOCK_CACHE_BYTES_WRITE)
-              << std::endl;
-    std::cout << "COMPACT_READ_BYTES:"
-              << stat->getAndResetTickerCount(COMPACT_READ_BYTES) << std::endl;
-    std::cout << "COMPACT_WRITE_BYTES:"
-              << stat->getAndResetTickerCount(COMPACT_WRITE_BYTES) << std::endl;
-    std::cout << "COMPACTION_KEY_DROP_OBSOLETE:"
-              << stat->getAndResetTickerCount(COMPACTION_KEY_DROP_OBSOLETE)
-              << std::endl;
-    std::cout << "COMPACTION_KEY_DROP_RANGE_DEL:"
-              << stat->getAndResetTickerCount(COMPACTION_KEY_DROP_RANGE_DEL)
-              << std::endl;
-    std::cout << "FLUSH_WRITE_BYTES:"
-              << stat->getAndResetTickerCount(FLUSH_WRITE_BYTES) << std::endl;
-    std::cout << "NUMBER_DB_SEEK:"
-              << stat->getAndResetTickerCount(NUMBER_DB_SEEK) << std::endl;
-    std::cout << "DB_MUTEX_WAIT_MICROS:"
-              << stat->getAndResetTickerCount(DB_MUTEX_WAIT_MICROS) / 1000000
-              << "ms" << std::endl;
-    std::cout << "GET_HIT_L2_AND_UP:"
-              << stat->getAndResetTickerCount(GET_HIT_L2_AND_UP) << std::endl;
-    std::cout << "STALL_MICROS:" << stat->getAndResetTickerCount(STALL_MICROS)
-              << std::endl;
-    std::cout << "WRITE_TIMEDOUT:"
-              << stat->getAndResetTickerCount(WRITE_TIMEDOUT) << std::endl;
-    std::cout << "WAL_FILE_BYTES:"
-              << stat->getAndResetTickerCount(WAL_FILE_BYTES) << std::endl;
-    std::cout << "WAL_FILE_SYNCED:"
-              << stat->getAndResetTickerCount(WAL_FILE_SYNCED) << std::endl;
+    std::cout << "QPS: " << (cur_num - cur_last) / QPS_GAP
+              << "---------------------" << std::endl;
+
+    auto map = std::map<std::string, uint64_t>();
+    stat->getTickerMap(&map);
+    for (auto it = map.begin(); it != map.end(); it++) {
+      std::cout << it->first << ":" << it->second << std::endl;
+    }
+    stat->Reset();
+    std::cout << std::endl;
   }
 }
 
@@ -131,7 +100,7 @@ void do_compact(DB *db) {
 }
 
 void do_delete_files_in_range(DB *db) {
-  std::cout << "cmd:delete_files_in_range" << std::endl;
+  std::cout << "cmd:delete_files_in_range =====================" << std::endl;
   Slice begin = std::string("000000000008999");
   Slice end = Slice(BOUND);
   Status s = DeleteFilesInRange(db, db->DefaultColumnFamily(), nullptr, &end);
@@ -139,7 +108,7 @@ void do_delete_files_in_range(DB *db) {
 }
 
 void do_scan_and_delete(DB *db) {
-  std::cout << "cmd:do_scan_and_delete" << std::endl;
+  std::cout << "cmd:do_scan_and_delete =====================" << std::endl;
   auto opt = ReadOptions();
   auto bound = Slice(BOUND);
   opt.iterate_upper_bound = &bound;
