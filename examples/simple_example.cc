@@ -28,7 +28,7 @@ uint64_t LAST = 0;
 int VAL_SIZE = 512;
 std::string BOUND = std::string("000100000000000");
 std::string START = std::string("000000000000000");
-uint64_t BATCH_SIZE = 4;
+uint64_t BATCH_SIZE = 16;
 uint64_t QPS_GAP = 3;
 uint64_t DELETE_BYTES_RATE = 0;
 
@@ -231,15 +231,18 @@ int main(int argc, char *argv[]) {
     assert(value == "xxxxxxxxxxxxx");
     while (1) {
       WriteBatch batch;
+      auto snapshot = db->GetSnapshot();
       for (uint64_t j = 0; j < BATCH_SIZE; j++) {
         auto key = get_key();
-        Iterator *it = db->NewIterator(ReadOptions());
+        auto read = ReadOptions();
+        read.snapshot = snapshot;
+        Iterator *it = db->NewIterator(read);
         it->Seek(key);
         buffer = it->value();
         delete it;
         batch.Put(key, get_value());
       }
-
+      db->ReleaseSnapshot(snapshot);
       s = db->Write(WriteOptions(), &batch);
       assert(s.ok());
     }
