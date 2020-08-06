@@ -135,29 +135,34 @@ void do_scan_first(DB *db) {
 }
 
 void exec_command(DB *db) {
-  while (1) {
-    int input = 0;
-    std::cin >> input;
-    if (input == 1) {
-      do_compact(db);
-    }
-    if (input == 2) {
-      do_delete_files_in_range(db);
-    }
-    if (input == 3) {
-      do_scan_and_delete(db);
-    }
-    if (input == 4) {
-      do_scan_first(db);
-    }
-    if (input == 5) {
-      NUM = 100000000000;
-    }
-    if (input == 0) {
-      std::cout << "=== cmd all finished ===" << std::endl;
-      break;
-    }
-  }
+  NUM = 100000000000;
+  std::this_thread::sleep_for(std::chrono::minutes(10));
+  do_delete_files_in_range(db);
+  std::this_thread::sleep_for(std::chrono::minutes(2));
+  exit(0);
+  // while (1) {
+  //   int input = 0;
+  //   std::cin >> input;
+  //   if (input == 1) {
+  //     do_compact(db);
+  //   }
+  //   if (input == 2) {
+  //     do_delete_files_in_range(db);
+  //   }
+  //   if (input == 3) {
+  //     do_scan_and_delete(db);
+  //   }
+  //   if (input == 4) {
+  //     do_scan_first(db);
+  //   }
+  //   if (input == 5) {
+  //     NUM = 100000000000;
+  //   }
+  //   if (input == 0) {
+  //     std::cout << "=== cmd all finished ===" << std::endl;
+  //     break;
+  //   }
+  // }
 }
 
 int main(int argc, char *argv[]) {
