@@ -29,7 +29,7 @@ int VAL_SIZE = 512;
 std::string BOUND = std::string("000100000000000");
 std::string START = std::string("000000000000000");
 uint64_t BATCH_SIZE = 16;
-uint64_t QPS_GAP = 3;
+uint64_t QPS_GAP = 4;
 uint64_t DELETE_BYTES_RATE = 0;
 
 std::string gen_random(const int len) {
