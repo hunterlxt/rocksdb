@@ -723,6 +723,10 @@ bool LDBCommand::ValidateCmdLineOptions() {
     if (std::find(valid_cmd_line_options_.begin(),
                   valid_cmd_line_options_.end(),
                   itr->first) == valid_cmd_line_options_.end()) {
+    for(auto it = valid_cmd_line_options_.begin(); it != valid_cmd_line_options_.end(); ++it)
+    {
+        fprintf(stderr,"valid_cmd_line_options_: %s\n", *it);
+    }
       fprintf(stderr, "Invalid command-line option %s\n", itr->first.c_str());
       return false;
     }
